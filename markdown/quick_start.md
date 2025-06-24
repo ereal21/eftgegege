@@ -12,6 +12,8 @@
       - [OWNER_ID](https://telegram.me/myidbot)
       - [ACCESS_TOKEN](https://pypi.org/project/YooMoney/#access-token)
       - [ACCOUNT_NUMBER](https://pypi.org/project/YooMoney/#account-information)
+      - `SHK_API_KEY` - SHKeeper API key
+      - `SHK_MERCHANT_ID` - SHKeeper merchant id
 
    5. [Setup config.py](../bot/misc/config.py)
       - CHANNEL_URL - telegram channel link (to disable, set `CHANNEL_URL: Final = 'https://t.me/'`)
