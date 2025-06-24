@@ -443,11 +443,11 @@ async def process_replenish_balance(message: Message):
     TgConfig.STATE[user_id] = None
     await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
-    if not text.isdigit() or int(text) < 20 or int(text) > 10000:
+    if not text.isdigit() or int(text) < 5 or int(text) > 10000:
         await bot.edit_message_text(chat_id=message.chat.id,
                                     message_id=message_id,
                                     text="❌ Invalid top-up amount. "
-                                         "The amount must be between 20€ and 10 000€",
+                                         "The amount must be between 5€ and 10 000€",
                                     reply_markup=back('replenish_balance'))
         return
 
@@ -495,6 +495,16 @@ async def crypto_payment(call: CallbackQuery):
         await call.answer(text='❌ Invoice not found')
         return
 
+    invoice_id, address = await create_invoice(float(amount), currency)
+    start_operation(user_id, amount, invoice_id)
+    sleep_time = int(TgConfig.PAYMENT_TIME)
+    scheme = f"{currency.lower()}:{address}"
+    markup = payment_menu(scheme, invoice_id)
+    await bot.edit_message_text(chat_id=call.message.chat.id,
+                                message_id=call.message.message_id,
+                                text=(f'💵 Send {amount}€ in {currency} to address:\n'
+                                      f'<code>{address}</code>\n'
+
     invoice_id, url = await create_invoice(float(amount), currency)
     start_operation(user_id, amount, invoice_id)
     sleep_time = int(TgConfig.PAYMENT_TIME)
@@ -502,6 +512,7 @@ async def crypto_payment(call: CallbackQuery):
     await bot.edit_message_text(chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
                                 text=(f'💵 Send {amount}€ in {currency}.\n'
+
                                       f'⌛️ You have {int(sleep_time / 60)} minutes to pay.\n'
                                       f'<b>❗️ After payment press "Check payment"</b>'),
                                 reply_markup=markup)
