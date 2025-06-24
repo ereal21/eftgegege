@@ -5,3 +5,5 @@ requests~=2.32.0
 alembic~=1.13.3
 solana~=0.36.7
 xrpl-py~=4.2.0
+web3~=6.15.1
+python-bitcoinrpc~=1.0
