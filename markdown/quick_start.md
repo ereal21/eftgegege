@@ -14,8 +14,13 @@
       - [ACCOUNT_NUMBER](https://pypi.org/project/YooMoney/#account-information)
 
 
-      - `SHK_API_KEY` - SHKeeper API key
-      - `SHK_MERCHANT_ID` - SHKeeper merchant id
+     - `SHK_API_KEY` - SHKeeper API key
+     - `SHK_MERCHANT_ID` - SHKeeper merchant id
+     - `ETH_NODE_URL` - HTTP RPC endpoint of your Geth node
+     - `SOL_NODE_URL` - RPC endpoint for your Solana validator
+     - `BTC_RPC_URL` - RPC URL with credentials for Bitcoin Core
+     - `LTC_RPC_URL` - RPC URL with credentials for Litecoin Core
+     - `XRP_RPC_URL` - HTTP RPC endpoint for your rippled server
 
 
    5. [Setup config.py](../bot/misc/config.py)
@@ -27,6 +32,7 @@
       - RULES - rules for using the bot (to disable, set `RULES: Final = None`)
 
    6. Run run.py
+   7. Make sure your self-hosted nodes are up and RPC endpoints match the URLs above.
 
 ### P.S.
 1. Add the bot to the channel and group you have provided and make it an admin
