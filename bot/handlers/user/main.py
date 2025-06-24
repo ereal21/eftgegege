@@ -21,7 +21,6 @@ from bot.localization import t
 from bot.logger_mesh import logger
 from bot.misc import TgConfig, EnvKeys
 from bot.misc.payment import quick_pay, check_payment_status
-from bot.main import dp
 
 
 
@@ -291,7 +290,6 @@ async def buy_item_callback_handler(call: CallbackQuery):
                                 reply_markup=back(f'item_{item_name}'))
 
 # Home button callback handler
-@dp.callback_query_handler(lambda c: c.data == "home_menu")
 async def process_home_menu(call: CallbackQuery):
     await call.message.delete()  # Delete the purchase confirmation message
     # Show main menu (replace with your menu logic)
@@ -626,6 +624,8 @@ def register_user_handlers(dp: Dispatcher):
                                        lambda c: c.data.startswith('buy_'))
     dp.register_callback_query_handler(checking_payment,
                                        lambda c: c.data.startswith('check_'))
+    dp.register_callback_query_handler(process_home_menu,
+                                       lambda c: c.data == 'home_menu')
 
     dp.register_message_handler(process_replenish_balance,
                                 lambda c: TgConfig.STATE.get(c.from_user.id) == 'process_replenish_balance')
