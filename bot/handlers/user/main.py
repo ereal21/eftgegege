@@ -504,6 +504,15 @@ async def crypto_payment(call: CallbackQuery):
                                 message_id=call.message.message_id,
                                 text=(f'💵 Send {amount}€ in {currency} to address:\n'
                                       f'<code>{address}</code>\n'
+
+    invoice_id, url = await create_invoice(float(amount), currency)
+    start_operation(user_id, amount, invoice_id)
+    sleep_time = int(TgConfig.PAYMENT_TIME)
+    markup = payment_menu(url, invoice_id)
+    await bot.edit_message_text(chat_id=call.message.chat.id,
+                                message_id=call.message.message_id,
+                                text=(f'💵 Send {amount}€ in {currency}.\n'
+
                                       f'⌛️ You have {int(sleep_time / 60)} minutes to pay.\n'
                                       f'<b>❗️ After payment press "Check payment"</b>'),
                                 reply_markup=markup)
