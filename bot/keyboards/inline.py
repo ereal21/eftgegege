@@ -259,6 +259,7 @@ def crypto_choice() -> InlineKeyboardMarkup:
          InlineKeyboardButton('SOL', callback_data='crypto_SOL')],
         [InlineKeyboardButton('BTC', callback_data='crypto_BTC'),
          InlineKeyboardButton('XRP', callback_data='crypto_XRP')],
+        [InlineKeyboardButton('LTC', callback_data='crypto_LTC')],
         [InlineKeyboardButton('💳 Card', callback_data='pay_yoomoney')],
         [InlineKeyboardButton('🔙 Go back', callback_data='replenish_balance')]
     ]
