@@ -75,6 +75,7 @@ class User(Database.BASE):
     telegram_id = Column(BigInteger, nullable=False, unique=True, primary_key=True)
     role_id = Column(Integer, ForeignKey('roles.id'), default=1)
     balance = Column(BigInteger, nullable=False, default=0)
+    language = Column(String(5), nullable=True)
     referral_id = Column(BigInteger, nullable=True)
     registration_date = Column(VARCHAR, nullable=False)
     user_operations = relationship("Operations", back_populates="user_telegram_id")
@@ -82,12 +83,13 @@ class User(Database.BASE):
     user_goods = relationship("BoughtGoods", back_populates="user_telegram_id")
 
     def __init__(self, telegram_id: int, registration_date: datetime.datetime, balance: int = 0,
-                 referral_id=None, role_id: int = 1):
+                 referral_id=None, role_id: int = 1, language: str | None = None):
         self.telegram_id = telegram_id
         self.role_id = role_id
         self.balance = balance
         self.referral_id = referral_id
         self.registration_date = registration_date
+        self.language = language
 
 
 class Categories(Database.BASE):

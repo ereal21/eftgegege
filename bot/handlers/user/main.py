@@ -7,12 +7,14 @@ from aiogram import Dispatcher
 from aiogram.types import Message, CallbackQuery, ChatType, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.exceptions import ChatNotFound
 
-from bot.database.methods import select_max_role_id, create_user, check_role, check_user, \
-    get_all_categories, get_all_items, select_bought_items, get_bought_item_info, get_item_info, \
-    select_item_values_amount, get_user_balance, get_item_value, buy_item, add_bought_item, buy_item_for_balance, \
-    select_user_operations, select_user_items, check_user_referrals, start_operation, \
-    select_unfinished_operations, get_user_referral, finish_operation, update_balance, create_operation, \
-    bought_items_list, check_value, get_subcategories, get_category_parent
+from bot.database.methods import (
+    select_max_role_id, create_user, check_role, check_user,
+    get_all_categories, get_all_items, select_bought_items, get_bought_item_info, get_item_info,
+    select_item_values_amount, get_user_balance, get_item_value, buy_item, add_bought_item, buy_item_for_balance,
+    select_user_operations, select_user_items, check_user_referrals, start_operation,
+    select_unfinished_operations, get_user_referral, finish_operation, update_balance, create_operation,
+    bought_items_list, check_value, get_subcategories, get_category_parent, get_user_language, update_user_language
+)
 from bot.utils.files import cleanup_item_file
 from bot.handlers.other import get_bot_user_ids, check_sub_channel, get_bot_info
 from bot.keyboards import check_sub, main_menu, categories_list, goods_list, subcategories_list, user_items_list, back, item_info, \
@@ -21,7 +23,6 @@ from bot.localization import t
 from bot.logger_mesh import logger
 from bot.misc import TgConfig, EnvKeys
 from bot.misc.payment import quick_pay, check_payment_status
-from bot.main import dp
 
 
 
@@ -41,6 +42,7 @@ async def start(message: Message):
     create_user(telegram_id=user_id, registration_date=formatted_time, referral_id=referral_id, role=user_role)
     chat = TgConfig.CHANNEL_URL[13:]
     role_data = check_role(user_id)
+    user_db = check_user(user_id)
 
     try:
         if chat is not None:
@@ -57,7 +59,7 @@ async def start(message: Message):
     except ChatNotFound:
         pass
 
-    user_lang = TgConfig.STATE.get(f'language_{user_id}')
+    user_lang = user_db.language
     if not user_lang:
         lang_markup = InlineKeyboardMarkup(row_width=1)
         lang_markup.add(
@@ -71,8 +73,7 @@ async def start(message: Message):
         await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         return
 
-    user = check_user(user_id)
-    balance = user.balance if user else 0
+    balance = user_db.balance if user_db else 0
     markup = main_menu(role_data, chat, TgConfig.HELPER_URL, user_lang)
     text = (
         f"{t(user_lang, 'hello', user=message.from_user.first_name)}\n"
@@ -87,7 +88,7 @@ async def start(message: Message):
 async def back_to_menu_callback_handler(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     user = check_user(call.from_user.id)
-    user_lang = TgConfig.STATE.get(f'language_{user_id}', 'en')
+    user_lang = get_user_language(user_id) or 'en'
     markup = main_menu(user.role_id, TgConfig.CHANNEL_URL, TgConfig.HELPER_URL, user_lang)
     text = (
         f"{t(user_lang, 'hello', user=call.from_user.first_name)}\n"
@@ -291,11 +292,19 @@ async def buy_item_callback_handler(call: CallbackQuery):
                                 reply_markup=back(f'item_{item_name}'))
 
 # Home button callback handler
-@dp.callback_query_handler(lambda c: c.data == "home_menu")
 async def process_home_menu(call: CallbackQuery):
-    await call.message.delete()  # Delete the purchase confirmation message
-    # Show main menu (replace with your menu logic)
-    await set_main_menu(call)    # or whatever your menu function is called
+    await call.message.delete()
+    bot, user_id = await get_bot_user_ids(call)
+    user = check_user(user_id)
+    lang = get_user_language(user_id) or 'en'
+    markup = main_menu(user.role_id, TgConfig.CHANNEL_URL, TgConfig.HELPER_URL, lang)
+    text = (
+        f"{t(lang, 'hello', user=call.from_user.first_name)}\n"
+        f"{t(lang, 'balance', balance=f'{user.balance:.2f}')}\n"
+        f"{t(lang, 'basket', items=0)}\n\n"
+        f"{t(lang, 'overpay')}"
+    )
+    await bot.send_message(user_id, text, reply_markup=markup)
 
 async def bought_items_callback_handler(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
@@ -510,7 +519,7 @@ async def check_sub_to_channel(call: CallbackQuery):
     if await check_sub_channel(chat_member):
         user = check_user(call.from_user.id)
         role = user.role_id
-        lang = TgConfig.STATE.get(f'language_{user_id}', 'en')
+        lang = get_user_language(user_id) or 'en'
         markup = main_menu(role, chat, helper, lang)
         text = (
             f"{t(lang, 'hello', user=call.from_user.first_name)}\n"
@@ -526,7 +535,7 @@ async def check_sub_to_channel(call: CallbackQuery):
 
 async def change_language(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
-    current_lang = TgConfig.STATE.get(f'language_{user_id}', 'en')
+    current_lang = get_user_language(user_id) or 'en'
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
         InlineKeyboardButton('English \U0001F1EC\U0001F1E7', callback_data='set_lang_en'),
@@ -544,7 +553,8 @@ async def change_language(call: CallbackQuery):
 async def set_language(call: CallbackQuery, first_time=False):
     bot, user_id = await get_bot_user_ids(call)
     lang_code = call.data.split('_')[-1]
-    TgConfig.STATE[f'language_{user_id}'] = lang_code
+    update_user_language(user_id, lang_code)
+    await call.message.delete()
     role = check_role(user_id)
     chat = TgConfig.CHANNEL_URL[13:]
     user = check_user(user_id)
@@ -626,6 +636,8 @@ def register_user_handlers(dp: Dispatcher):
                                        lambda c: c.data.startswith('buy_'))
     dp.register_callback_query_handler(checking_payment,
                                        lambda c: c.data.startswith('check_'))
+    dp.register_callback_query_handler(process_home_menu,
+                                       lambda c: c.data == 'home_menu')
 
     dp.register_message_handler(process_replenish_balance,
                                 lambda c: TgConfig.STATE.get(c.from_user.id) == 'process_replenish_balance')

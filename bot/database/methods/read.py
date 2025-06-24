@@ -94,6 +94,11 @@ def get_user_balance(telegram_id: int) -> float | None:
     return result[0] if result else None
 
 
+def get_user_language(telegram_id: int) -> str | None:
+    result = Database().session.query(User.language).filter(User.telegram_id == telegram_id).first()
+    return result[0] if result else None
+
+
 def get_all_admins() -> list[int]:
     return [admin[0] for admin in Database().session.query(User.telegram_id).filter(User.role_id == 'ADMIN').all()]
 

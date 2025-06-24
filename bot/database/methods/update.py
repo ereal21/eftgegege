@@ -16,6 +16,12 @@ def update_balance(telegram_id: int | str, summ: int) -> None:
     Database().session.commit()
 
 
+def update_user_language(telegram_id: int, language: str) -> None:
+    Database().session.query(User).filter(User.telegram_id == telegram_id).update(
+        values={User.language: language})
+    Database().session.commit()
+
+
 def buy_item_for_balance(telegram_id: str, summ: int) -> int:
     old_balance = User.balance
     new_balance = old_balance - summ
