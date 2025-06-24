@@ -495,16 +495,6 @@ async def crypto_payment(call: CallbackQuery):
         await call.answer(text='❌ Invoice not found')
         return
 
-    invoice_id, address = await create_invoice(float(amount), currency)
-    start_operation(user_id, amount, invoice_id)
-    sleep_time = int(TgConfig.PAYMENT_TIME)
-    scheme = f"{currency.lower()}:{address}"
-    markup = payment_menu(scheme, invoice_id)
-    await bot.edit_message_text(chat_id=call.message.chat.id,
-                                message_id=call.message.message_id,
-                                text=(f'💵 Send {amount}€ in {currency} to address:\n'
-                                      f'<code>{address}</code>\n'
-
     invoice_id, url = await create_invoice(float(amount), currency)
     start_operation(user_id, amount, invoice_id)
     sleep_time = int(TgConfig.PAYMENT_TIME)
