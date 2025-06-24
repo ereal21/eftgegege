@@ -253,6 +253,19 @@ def payment_menu(url: str, label: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
+def crypto_choice() -> InlineKeyboardMarkup:
+    inline_keyboard = [
+        [InlineKeyboardButton('ETH', callback_data='crypto_ETH'),
+         InlineKeyboardButton('SOL', callback_data='crypto_SOL')],
+        [InlineKeyboardButton('BTC', callback_data='crypto_BTC'),
+         InlineKeyboardButton('XRP', callback_data='crypto_XRP')],
+        [InlineKeyboardButton('LTC', callback_data='crypto_LTC')],
+        [InlineKeyboardButton('💳 Card', callback_data='pay_yoomoney')],
+        [InlineKeyboardButton('🔙 Go back', callback_data='replenish_balance')]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
 def reset_config(key: str) -> InlineKeyboardMarkup:
     inline_keyboard = [
         [InlineKeyboardButton(f'Reset {key}', callback_data=f'reset_{key}')

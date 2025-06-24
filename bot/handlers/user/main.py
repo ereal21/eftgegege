@@ -18,11 +18,12 @@ from bot.database.methods import (
 from bot.utils.files import cleanup_item_file
 from bot.handlers.other import get_bot_user_ids, check_sub_channel, get_bot_info
 from bot.keyboards import check_sub, main_menu, categories_list, goods_list, subcategories_list, user_items_list, back, item_info, \
-    profile, rules, payment_menu, close
+    profile, rules, payment_menu, close, crypto_choice
 from bot.localization import t
 from bot.logger_mesh import logger
 from bot.misc import TgConfig, EnvKeys
 from bot.misc.payment import quick_pay, check_payment_status
+from bot.misc.crypto_payment import create_invoice, check_transaction_status
 
 
 
@@ -442,22 +443,37 @@ async def process_replenish_balance(message: Message):
     TgConfig.STATE[user_id] = None
     await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
-    if not text.isdigit() or int(text) < 20 or int(text) > 10000:
+    if not text.isdigit() or int(text) < 5 or int(text) > 10000:
         await bot.edit_message_text(chat_id=message.chat.id,
                                     message_id=message_id,
                                     text="❌ Invalid top-up amount. "
-                                         "The amount must be between 20€ and 10 000€",
+                                         "The amount must be between 5€ and 10 000€",
                                     reply_markup=back('replenish_balance'))
         return
 
-    label, url = quick_pay(message)
-    start_operation(user_id, text, label)
-    sleep = TgConfig.PAYMENT_TIME
-    sleep_time = int(sleep)
-    markup = payment_menu(url, label)
+    TgConfig.STATE[f'{user_id}_amount'] = text
+    markup = crypto_choice()
     await bot.edit_message_text(chat_id=message.chat.id,
                                 message_id=message_id,
-                                text=f'💵 Top-up amount: {text}€.\n'
+                                text=f'💵 Top-up amount: {text}€. Choose payment method:',
+                                reply_markup=markup)
+
+
+async def pay_yoomoney(call: CallbackQuery):
+    bot, user_id = await get_bot_user_ids(call)
+    amount = TgConfig.STATE.pop(f'{user_id}_amount', None)
+    if not amount:
+        await call.answer(text='❌ Invoice not found')
+        return
+
+    fake = type('Fake', (), {'text': amount, 'from_user': call.from_user})
+    label, url = quick_pay(fake)
+    start_operation(user_id, amount, label)
+    sleep_time = int(TgConfig.PAYMENT_TIME)
+    markup = payment_menu(url, label)
+    await bot.edit_message_text(chat_id=call.message.chat.id,
+                                message_id=call.message.message_id,
+                                text=f'💵 Top-up amount: {amount}€.\n'
                                      f'⌛️ You have {int(sleep_time / 60)} minutes to pay.\n'
                                      f'<b>❗️ After payment press "Check payment"</b>',
                                 reply_markup=markup)
@@ -465,9 +481,38 @@ async def process_replenish_balance(message: Message):
     info = select_unfinished_operations(label)
     if info:
         payment_status = await check_payment_status(label)
-
-        if not payment_status == "success":
+        if payment_status is None:
+            payment_status = await check_transaction_status(label)
+        if payment_status not in ('paid', 'success'):
             finish_operation(label)
+
+
+async def crypto_payment(call: CallbackQuery):
+    bot, user_id = await get_bot_user_ids(call)
+    currency = call.data.split('_')[1]
+    amount = TgConfig.STATE.pop(f'{user_id}_amount', None)
+    if not amount:
+        await call.answer(text='❌ Invoice not found')
+        return
+
+    invoice_id, address = await create_invoice(float(amount), currency)
+    start_operation(user_id, amount, invoice_id)
+    sleep_time = int(TgConfig.PAYMENT_TIME)
+    scheme = f"{currency.lower()}:{address}"
+    markup = payment_menu(scheme, invoice_id)
+    await bot.edit_message_text(chat_id=call.message.chat.id,
+                                message_id=call.message.message_id,
+                                text=(f'💵 Send {amount}€ in {currency} to address:\n'
+                                      f'<code>{address}</code>\n'
+                                      f'⌛️ You have {int(sleep_time / 60)} minutes to pay.\n'
+                                      f'<b>❗️ After payment press "Check payment"</b>'),
+                                reply_markup=markup)
+    await asyncio.sleep(sleep_time)
+    info = select_unfinished_operations(invoice_id)
+    if info:
+        status = await check_transaction_status(invoice_id)
+        if status not in ('paid', 'success'):
+            finish_operation(invoice_id)
 
 
 async def checking_payment(call: CallbackQuery):
@@ -479,8 +524,10 @@ async def checking_payment(call: CallbackQuery):
     if info:
         operation_value = info[0]
         payment_status = await check_payment_status(label)
+        if payment_status is None:
+            payment_status = await check_transaction_status(label)
 
-        if payment_status == "success":
+        if payment_status in ("success", "paid"):
             current_time = datetime.datetime.now()
             formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
             referral_id = get_user_referral(user_id)
@@ -634,6 +681,10 @@ def register_user_handlers(dp: Dispatcher):
                                        lambda c: c.data.startswith('item_'))
     dp.register_callback_query_handler(buy_item_callback_handler,
                                        lambda c: c.data.startswith('buy_'))
+    dp.register_callback_query_handler(pay_yoomoney,
+                                       lambda c: c.data == 'pay_yoomoney')
+    dp.register_callback_query_handler(crypto_payment,
+                                       lambda c: c.data.startswith('crypto_'))
     dp.register_callback_query_handler(checking_payment,
                                        lambda c: c.data.startswith('check_'))
     dp.register_callback_query_handler(process_home_menu,

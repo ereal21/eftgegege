@@ -12,6 +12,7 @@
       - [OWNER_ID](https://telegram.me/myidbot)
       - [ACCESS_TOKEN](https://pypi.org/project/YooMoney/#access-token)
       - [ACCOUNT_NUMBER](https://pypi.org/project/YooMoney/#account-information)
+     - BLOCKCYPHER_TOKEN - optional API token for generating crypto addresses
 
    5. [Setup config.py](../bot/misc/config.py)
       - CHANNEL_URL - telegram channel link (to disable, set `CHANNEL_URL: Final = 'https://t.me/'`)

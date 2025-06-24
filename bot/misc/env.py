@@ -11,3 +11,4 @@ class EnvKeys(ABC):
     OWNER_ID: Final = os.environ.get('OWNER_ID')
     ACCESS_TOKEN: Final = os.environ.get('ACCESS_TOKEN')
     ACCOUNT_NUMBER: Final = os.environ.get('ACCOUNT_NUMBER')
+    BLOCKCYPHER_TOKEN: Final = os.environ.get('BLOCKCYPHER_TOKEN')
