@@ -5,7 +5,7 @@ from bot.database.models import User, ItemValues, Goods, Categories, BoughtGoods
 from bot.database import Database
 
 
-def create_user(telegram_id: int, registration_date, referral_id, role: int = 1) -> None:
+def create_user(telegram_id: int, registration_date, referral_id, role: int = 1, language: str | None = None) -> None:
     session = Database().session
     try:
         session.query(User.telegram_id).filter(User.telegram_id == telegram_id).one()
@@ -13,12 +13,12 @@ def create_user(telegram_id: int, registration_date, referral_id, role: int = 1)
         if referral_id != '':
             session.add(
                 User(telegram_id=telegram_id, role_id=role, registration_date=registration_date,
-                     referral_id=referral_id))
+                     referral_id=referral_id, language=language))
             session.commit()
         else:
             session.add(
                 User(telegram_id=telegram_id, role_id=role, registration_date=registration_date,
-                     referral_id=None))
+                     referral_id=None, language=language))
             session.commit()
 
 
